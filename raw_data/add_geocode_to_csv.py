@@ -1,6 +1,6 @@
 import pandas as pd
 import time
-from geocode import get_geocode
+from raw_data.geocode import get_geocode
 
 
 def process_csv(input_file: str, output_file: str):
