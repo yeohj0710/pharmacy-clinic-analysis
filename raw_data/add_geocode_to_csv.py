@@ -1,36 +1,71 @@
 import pandas as pd
 import time
+import os
 from raw_data.geocode import get_geocode
 
 
 def process_csv(input_file: str, output_file: str):
-    df = pd.read_csv(input_file)
+    try:
+        df = pd.read_csv(input_file, encoding="utf-8")
+    except UnicodeDecodeError:
+        df = pd.read_csv(input_file, encoding="cp949")
 
-    # 홈페이지 컬럼이 결측값이면 빈 문자열로 채움
     df["홈페이지"] = df["홈페이지"].fillna("")
 
-    lat_list = []
-    lon_list = []
+    file_exists = os.path.exists(output_file)
+
+    if file_exists:
+        df_existing = pd.read_csv(output_file)
+        if "위도" in df_existing.columns and "경도" in df_existing.columns:
+            df["위도"] = df_existing["위도"]
+            df["경도"] = df_existing["경도"]
+        else:
+            df["위도"] = None
+            df["경도"] = None
+    else:
+        df["위도"] = None
+        df["경도"] = None
+
     total = len(df)
 
     for i, row in df.iterrows():
+
+        if pd.notna(row["위도"]) and row["위도"] != "":
+            continue
+
         address = row["소재지주소"]
-        lat, lon = get_geocode(address)
-        lat_list.append(lat)
-        lon_list.append(lon)
+        attempts = 0
+        lat, lon = None, None
+
+        while attempts < 5:
+            lat, lon = get_geocode(address)
+            if lat is not None and lon is not None and lat != "" and lon != "":
+                break
+            attempts += 1
+            time.sleep(0.1)
+
+        df.at[i, "위도"] = lat
+        df.at[i, "경도"] = lon
+
+        if file_exists:
+            print(f"Row {i}: Address '{address}', obtained lat: {lat}, lon: {lon}")
 
         if (i + 1) % 100 == 0:
-            print(f"{i + 1}/{total} rows processed")
+            df.to_csv(output_file, index=False, encoding="utf-8-sig")
+            print(f"{i + 1}/{total} rows processed and saved.")
 
-        # API 호출 속도 제한을 고려하여 약간의 딜레이 추가
         time.sleep(0.1)
 
-    df["위도"] = lat_list
-    df["경도"] = lon_list
-
+    df = df[
+        (df["위도"].notna())
+        & (df["위도"] != "")
+        & (df["경도"].notna())
+        & (df["경도"] != "")
+    ]
     df.to_csv(output_file, index=False, encoding="utf-8-sig")
+
     print(f"변환 완료! 결과 파일: {output_file}")
 
 
 if __name__ == "__main__":
-    process_csv("incheon_list.csv", "incheon_list_with_geo.csv")
+    process_csv("seoul_list.csv", "seoul_list_with_geo.csv")
