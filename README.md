@@ -36,9 +36,7 @@
 - incheon_clinic_list.csv
   - 인천광역시의 모든 의원, 치과의원 데이터 + 위도/경도
 - 인천광역시 약국 근처 의원 거리순 정렬.xlsx
-
   - 최종적으로 약국들을, 가장 가까운 의원까지의 거리를 기준으로 정렬한 데이터
-
 - seoul_list.csv
   - 서울특별시의 모든 약국, 병/의원 데이터
 - seoul_list_with_geo.csv
